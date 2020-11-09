@@ -13,27 +13,60 @@ import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/rest/")
 public class ShipController {
+    private Matcher matcher;
 
     @Autowired
     private ShipService shipService;
 
     @RequestMapping(value = "ships", method = RequestMethod.GET)
-    public ResponseEntity<List<Ship>> getAllShips() {
+    public ResponseEntity<List<Ship>> getAllShips(@RequestParam(value = "name", required = false) String name,
+                                                  @RequestParam(value = "planet", required = false) String planet,
+                                                  @RequestParam(value = "shipType", required = false) String shipType,
+                                                  @RequestParam(value = "after", required = false) String after,
+                                                  @RequestParam(value = "before", required = false) String before,
+                                                  @RequestParam(value = "isUsed", required = false) String isUsed,
+                                                  @RequestParam(value = "minSpeed", required = false) String minSpeed,
+                                                  @RequestParam(value = "maxSpeed", required = false) String maxSpeed,
+                                                  @RequestParam(value = "minCrewSize", required = false) String minCrewSize,
+                                                  @RequestParam(value = "maxCrewSize", required = false) String maxCrewSize,
+                                                  @RequestParam(value = "minRating", required = false) String minRating,
+                                                  @RequestParam(value = "maxRating", required = false) String maxRating,
+                                                  @RequestParam(value = "order", required = false) String order,
+                                                  @RequestParam(value = "pageNumber", required = false) String pageNumber,
+                                                  @RequestParam(value = "pageSize", required = false) String pageSize) {
+
         List<Ship> ships = this.shipService.getAll();
-//        for (Ship ship: ships) {
-//            System.out.println(ship.getName());
-//        }
         if (ships.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-
+        
+        if(name != null){
+            for (int i = 0; i < ships.size(); i++) {
+                Pattern pattern = Pattern.compile(".*"+name+".*");
+                if(!(matcher = pattern.matcher(ships.get(i).getName())).matches()){
+                    ships.remove(i);
+                    i--;
+                }
+            }
+        }
         return new ResponseEntity<>(ships, HttpStatus.OK);
     }
+//    @RequestMapping(value = "ships", method = RequestMethod.GET)
+//    public ResponseEntity<List<Ship>> getAllShips() {
+//        List<Ship> ships = this.shipService.getAll();
+//        if (ships.isEmpty()) {
+//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+//        }
+//
+//        return new ResponseEntity<>(ships, HttpStatus.OK);
+//    }
 
     @RequestMapping(value = "ships", method = RequestMethod.POST)
     @ResponseBody
