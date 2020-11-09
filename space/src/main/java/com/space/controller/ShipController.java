@@ -114,6 +114,20 @@ public class ShipController {
         return new ResponseEntity<>(currentShip, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "ships/{id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Ship> DeleteShipByID(@PathVariable("id") String strShipId){
+        long shipId;
+        if(isValidityId(strShipId)) shipId = Long.parseLong(strShipId);
+        else return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        Ship currentShip = shipService.getById(shipId);
+        if(currentShip == null){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        shipService.delete(shipId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     private Double calculateRating(Ship ship){
         Double rating;
         Double k;

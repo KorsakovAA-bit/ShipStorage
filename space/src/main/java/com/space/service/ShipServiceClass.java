@@ -30,7 +30,7 @@ public class ShipServiceClass implements ShipService {
 
     @Override
     public void delete(Long id) {
-        shipRepository.delete(shipRepository.getOne(id));
+        shipRepository.delete(shipRepository.findById(id).orElse(null));
     }
 
     @Override
