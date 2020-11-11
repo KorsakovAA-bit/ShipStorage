@@ -4,15 +4,14 @@ import com.space.model.Ship;
 import com.space.model.ShipType;
 import com.space.service.ShipService;
 import org.hibernate.annotations.Proxy;
+import org.hibernate.annotations.SourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.DecimalFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -25,6 +24,10 @@ public class ShipController {
     @Autowired
     private ShipService shipService;
 
+    Comparator<Ship> comparatorById = (o1, o2) -> o1.getId().compareTo(o2.getId());
+    Comparator<Ship> comparatorBySpeed = (o1, o2) -> o1.getSpeed().compareTo(o2.getSpeed());
+    Comparator<Ship> comparatorByDate = (o1, o2) -> o1.getProdDate().compareTo(o2.getProdDate());
+    Comparator<Ship> comparatorByRating = (o1, o2) -> o1.getRating().compareTo(o2.getRating());
     @RequestMapping(value = "ships", method = RequestMethod.GET)
     public ResponseEntity<List<Ship>> getAllShips(@RequestParam(value = "name", required = false) String name,
                                                   @RequestParam(value = "planet", required = false) String planet,
@@ -46,27 +49,143 @@ public class ShipController {
         if (ships.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        
-        if(name != null){
-            for (int i = 0; i < ships.size(); i++) {
-                Pattern pattern = Pattern.compile(".*"+name+".*");
-                if(!(matcher = pattern.matcher(ships.get(i).getName())).matches()){
+        for (int i = 0; i < ships.size(); i++) {
+            if (name != null) {
+                Pattern pattern = Pattern.compile(".*" + name + ".*");
+                if (!(matcher = pattern.matcher(ships.get(i).getName())).matches()) {
                     ships.remove(i);
                     i--;
+                    continue;
                 }
             }
+            if(planet != null){
+                Pattern pattern = Pattern.compile(".*" + planet + ".*");
+                if (!(matcher = pattern.matcher(ships.get(i).getPlanet())).matches()) {
+                    ships.remove(i);
+                    i--;
+                    continue;
+                }
+            }
+            if(shipType != null){
+                ShipType type = ShipType.valueOf(shipType);
+                if(!(type.equals(ships.get(i).getShipType()))){
+                    ships.remove(i);
+                    i--;
+                    continue;
+                }
+            }
+            if(after != null){
+                try {
+                    Date previousDate = new Date(Long.parseLong(after));
+                    if(ships.get(i).getProdDate().before(previousDate)){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                } catch (NumberFormatException e){
+                    System.out.println("Параметр \"after\" не числовой");
+                }
+            }
+            if(before != null){
+                try {
+                    Date pastDate = new Date(Long.parseLong(before));
+                    if(ships.get(i).getProdDate().after(pastDate)){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                } catch (NumberFormatException e){
+                    System.out.println("Параметр \"before\" не числовой");
+                }
+            }
+            if(isUsed != null){
+                try {
+                    boolean used = Boolean.parseBoolean(isUsed);
+                    if(ships.get(i).getUsed() != used){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                } catch (NumberFormatException e){System.out.println("Параметр \"isUsed\" не boolean"); }
+            }
+            if(minSpeed != null){
+                try{
+                    Double doubleMinSpeed = Double.parseDouble(minSpeed);
+                    if(ships.get(i).getSpeed() < doubleMinSpeed){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"minSpeed\" не double");}
+            }
+            if(maxSpeed != null){
+                try{
+                    Double doubleMaxSpeed = Double.parseDouble(maxSpeed);
+                    if(ships.get(i).getSpeed() > doubleMaxSpeed){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"maxSpeed\" не double");}
+            }
+            if(minCrewSize != null){
+                try{
+                    Integer integerMinCrewSize = Integer.parseInt(minCrewSize);
+                    if(ships.get(i).getCrewSize() < integerMinCrewSize){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"minCrewSize\" не int");}
+            }
+            if(maxCrewSize != null){
+                try{
+                    Integer integerMaxCrewSize = Integer.parseInt(maxCrewSize);
+                    if(ships.get(i).getCrewSize() > integerMaxCrewSize){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"maxCrewSize\" не int");}
+            }
+            if(minRating != null){
+                try{
+                    Double doubleMinRating = Double.parseDouble(minRating);
+                    if(ships.get(i).getRating() < doubleMinRating){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"minRating\" не double");}
+            }
+            if(maxRating != null){
+                try{
+                    Double doubleMaxRating = Double.parseDouble(maxRating);
+                    if(ships.get(i).getRating() > doubleMaxRating){
+                        ships.remove(i);
+                        i--;
+                        continue;
+                    }
+                }catch (NumberFormatException e){System.out.println("Параметр \"maxRating\" не double");}
+            }
+            // Order, PageNumber, PageSize
+            if(order != null){
+                ShipOrder shipOrder = ShipOrder.valueOf(order);
+                if(shipOrder.equals(ShipOrder.ID)){
+                    Collections.sort(ships, comparatorById);
+                } else if(shipOrder.equals(ShipOrder.DATE)){
+                    Collections.sort(ships, comparatorByDate);
+                } else if(shipOrder.equals(ShipOrder.SPEED)){
+                    Collections.sort(ships, comparatorBySpeed);
+                } else if(shipOrder.equals(ShipOrder.RATING)){
+                    Collections.sort(ships, comparatorByRating);
+                }
+            }
+
         }
         return new ResponseEntity<>(ships, HttpStatus.OK);
     }
-//    @RequestMapping(value = "ships", method = RequestMethod.GET)
-//    public ResponseEntity<List<Ship>> getAllShips() {
-//        List<Ship> ships = this.shipService.getAll();
-//        if (ships.isEmpty()) {
-//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-//        }
-//
-//        return new ResponseEntity<>(ships, HttpStatus.OK);
-//    }
+
 
     @RequestMapping(value = "ships", method = RequestMethod.POST)
     @ResponseBody
